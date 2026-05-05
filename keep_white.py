@@ -203,7 +203,7 @@ def main():
 
     current_idx = 0
     while current_idx < len(images):
-        image_name = images[current_idx]
+        image_name = images[-current_idx]
         img_path = os.path.join(images_path, image_name)
         original_img = cv2.imread(img_path)
         if original_img is None:
