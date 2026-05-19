@@ -70,9 +70,9 @@ def merge_overlapping_boxes(boxes, class_ids, threshold=0.45):
 
 def main():
     # Paths
-    model_path = os.path.join("models", "model_v4.pt")
+    model_path = os.path.join("models", "model_vn3.pt")
     images_dir = r"E:\fabian\pest-monitoring\vision\datasets\pest_disease_fruit_detection\whiteflies\clahe_leaves"
-    output_json = r"E:\fabian\pest-monitoring\vision\datasets\pest_disease_fruit_detection\whiteflies\label_studio_predictions_v5.json"
+    output_json = r"E:\fabian\pest-monitoring\vision\datasets\pest_disease_fruit_detection\whiteflies\label_studio_predictions_vn3.json"
 
     # Prefix for Label Studio Local Storage
     IMAGE_URL_PREFIX = "/data/local-files/?d=whiteflies%5Cclahe_leaves%5C"
@@ -127,7 +127,7 @@ def main():
 
             # Merge overlapping boxes
             merged_boxes, merged_classes = merge_overlapping_boxes(
-                boxes, classes_ids, threshold=0.45
+                boxes, classes_ids, threshold=0.65
             )
 
             for box, cls_id in zip(merged_boxes, merged_classes):

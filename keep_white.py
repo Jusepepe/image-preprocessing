@@ -74,12 +74,13 @@ def draw_recursive_bboxes(mask, draw_img):
         if area == 0:
             return
 
+        # Stop if bbox is too small to divide usefully
         bbox_area = w * h
-        if bbox_area < 150:
+        if bbox_area < 3000:
             return
 
         # Stop if segment fills >75% of bbox, or if bbox is too small to divide usefully
-        if area / bbox_area >= 0.75 or w < 5 or h < 5:
+        if area / bbox_area >= 0.05 or w < 5 or h < 5:
             cv2.rectangle(draw_img, (x, y), (x + w, y + h), (0, 255, 0), thickness)
         else:
             w1, h1 = w // 2, h // 2
@@ -203,7 +204,7 @@ def main():
 
     current_idx = 0
     while current_idx < len(images):
-        image_name = images[-current_idx]
+        image_name = images[current_idx]
         img_path = os.path.join(images_path, image_name)
         original_img = cv2.imread(img_path)
         if original_img is None:

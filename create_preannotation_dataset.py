@@ -9,9 +9,9 @@ def create_dataset():
     base_dir = Path(
         r"E:\fabian\pest-monitoring\vision\datasets\pest_disease_fruit_detection\whiteflies"
     )
-    label_dir = base_dir / "proposed_bboxes" / "v4" / "labels"
+    label_dir = base_dir / "proposed_bboxes" / "vn3_fixed" / "labels"
     image_dir = base_dir / "clahe_leaves"
-    output_dir = base_dir / "preannotations" / "data_for_preannotation_model_v4"
+    output_dir = base_dir / "preannotations" / "data_for_preannotation_model_vn3_fixed"
 
     # Create directory structure
     for split in ["train", "validation"]:

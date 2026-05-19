@@ -6,6 +6,68 @@ from tqdm import tqdm
 import re
 
 
+def calculate_overlap_ratio(boxA, boxB):
+    # box is [xmin, ymin, xmax, ymax]
+    xA = max(boxA[0], boxB[0])
+    yA = max(boxA[1], boxB[1])
+    xB = min(boxA[2], boxB[2])
+    yB = min(boxA[3], boxB[3])
+
+    interArea = max(0, xB - xA) * max(0, yB - yA)
+
+    boxAArea = (boxA[2] - boxA[0]) * (boxA[3] - boxA[1])
+    boxBArea = (boxB[2] - boxB[0]) * (boxB[3] - boxB[1])
+
+    if boxAArea == 0 or boxBArea == 0:
+        return 0.0
+
+    ratioA = interArea / boxAArea
+    ratioB = interArea / boxBArea
+
+    return max(ratioA, ratioB)
+
+
+def merge_overlapping_boxes(boxes, class_ids, threshold=0.45):
+    if not len(boxes):
+        return [], []
+
+    merged_any = True
+    current_boxes = [list(b) + [c] for b, c in zip(boxes, class_ids)]
+
+    while merged_any:
+        merged_any = False
+        new_boxes = []
+        used = [False] * len(current_boxes)
+
+        for i in range(len(current_boxes)):
+            if used[i]:
+                continue
+
+            box = current_boxes[i].copy()
+            used[i] = True
+
+            for j in range(i + 1, len(current_boxes)):
+                if used[j]:
+                    continue
+
+                if box[4] == current_boxes[j][4]:  # Same class
+                    ratio = calculate_overlap_ratio(box[:4], current_boxes[j][:4])
+                    if ratio > threshold:
+                        # Merge them
+                        box[0] = min(box[0], current_boxes[j][0])
+                        box[1] = min(box[1], current_boxes[j][1])
+                        box[2] = max(box[2], current_boxes[j][2])
+                        box[3] = max(box[3], current_boxes[j][3])
+                        used[j] = True
+                        merged_any = True
+
+            new_boxes.append(box)
+
+        current_boxes = new_boxes
+
+    return [b[:4] for b in current_boxes], [b[4] for b in current_boxes]
+
+
 def main():
     images_path = r"E:\fabian\pest-monitoring\vision\datasets\pest_disease_fruit_detection\whiteflies\foreground"
     labels_path = r"E:\fabian\pest-monitoring\vision\datasets\pest_disease_fruit_detection\whiteflies\labels\new_data"
@@ -63,7 +125,8 @@ def main():
             result_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )
 
-        yolo_boxes = []
+        raw_boxes = []
+        class_ids = []
 
         def process_bbox(x, y, w, h):
             if w <= 0 or h <= 0:
@@ -79,21 +142,8 @@ def main():
 
             # Stop if segment fills >75% of bbox, or if bbox is too small to divide usefully
             if area / bbox_area >= 0.65 or w < 5 or h < 5:
-                # Calculate YOLO normalized coordinates
-                x_center = (x + w / 2.0) / img_w
-                y_center = (y + h / 2.0) / img_h
-                w_norm = w / float(img_w)
-                h_norm = h / float(img_h)
-
-                # Clip values strictly between 0 and 1
-                x_center = max(0.0, min(1.0, x_center))
-                y_center = max(0.0, min(1.0, y_center))
-                w_norm = max(0.0, min(1.0, w_norm))
-                h_norm = max(0.0, min(1.0, h_norm))
-
-                yolo_boxes.append(
-                    f"{class_id} {x_center:.6f} {y_center:.6f} {w_norm:.6f} {h_norm:.6f}"
-                )
+                raw_boxes.append([x, y, x + w, y + h])
+                class_ids.append(class_id)
             else:
                 w1, h1 = w // 2, h // 2
                 w2, h2 = w - w1, h - h1
@@ -105,6 +155,32 @@ def main():
         for cnt in contours:
             x, y, w, h = cv2.boundingRect(cnt)
             process_bbox(x, y, w, h)
+
+        merged_boxes, merged_classes = merge_overlapping_boxes(
+            raw_boxes, class_ids, threshold=0.45
+        )
+
+        yolo_boxes = []
+        for box, cls in zip(merged_boxes, merged_classes):
+            x_min, y_min, x_max, y_max = box
+            w = x_max - x_min
+            h = y_max - y_min
+            
+            # Calculate YOLO normalized coordinates
+            x_center = (x_min + w / 2.0) / img_w
+            y_center = (y_min + h / 2.0) / img_h
+            w_norm = w / float(img_w)
+            h_norm = h / float(img_h)
+
+            # Clip values strictly between 0 and 1
+            x_center = max(0.0, min(1.0, x_center))
+            y_center = max(0.0, min(1.0, y_center))
+            w_norm = max(0.0, min(1.0, w_norm))
+            h_norm = max(0.0, min(1.0, h_norm))
+
+            yolo_boxes.append(
+                f"{cls} {x_center:.6f} {y_center:.6f} {w_norm:.6f} {h_norm:.6f}"
+            )
 
         # Write to txt file
         base_name = os.path.splitext(image_name)[0]

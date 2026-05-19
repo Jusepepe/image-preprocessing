@@ -5,8 +5,8 @@ from ultralytics import YOLO
 
 def main():
     # Paths
-    model_path = os.path.join("models", "model_v4.pt")
-    images_dir = r"E:\fabian\pest-monitoring\vision\datasets\pest_disease_fruit_detection\whiteflies\foreground"
+    model_path = os.path.join("models", "model_vn3.pt")
+    images_dir = r"E:\fabian\pest-monitoring\vision\datasets\pest_disease_fruit_detection\whiteflies\clahe_leaves"
 
     # Load the model
     print(f"Loading model from {model_path}...")
@@ -52,7 +52,7 @@ def main():
         cv2.imshow(
             "YOLOv8 Prediction",
             cv2.resize(
-                annotated_img, (0, 0), fx=0.5, fy=0.5, interpolation=cv2.INTER_AREA
+                annotated_img, (0, 0), fx=0.25, fy=0.25, interpolation=cv2.INTER_AREA
             ),
         )
 
